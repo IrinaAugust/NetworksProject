@@ -1,0 +1,3 @@
+COMPONENT=TokenPassingAppC
+include $(MAKERULES)
+
