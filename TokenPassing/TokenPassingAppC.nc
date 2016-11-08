@@ -9,7 +9,10 @@
 
 configuration TokenPassingAppC{}
 implementation {
-  components MainC, TokenPassingC;
+  components MainC, TokenPassingC, LedsC;
+  components new TimerMilliC() as Timer0;
+
+  //ActiveMessageC would send radio messages.
 
   MainC.Boot <- TokenPassingC;
 }
