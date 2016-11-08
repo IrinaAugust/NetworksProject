@@ -7,13 +7,17 @@
  * @date November 7th, 2016
  */
 
-configuration TokenPassingAppC{}
+configuration TokenPassingAppC {
+  //Nobody should be using this
+}
 implementation {
   components MainC, TokenPassingC, LedsC;
   components new TimerMilliC() as Timer0;
 
   //ActiveMessageC would send radio messages.
 
-  MainC.Boot <- TokenPassingC;
+  TokenPassingC.Boot -> MainC.Boot;
+  TokenPassingC.Leds -> LedsC;
+  TokenPassingC.Timer0 -> Timer0;
 }
 
