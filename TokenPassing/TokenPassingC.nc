@@ -9,8 +9,6 @@
 
 #include "Timer.h"
 
-#define BASE_STATION A6005whe
-
 module TokenPassingC @safe()
 {
   uses interface Boot;
@@ -36,7 +34,7 @@ implementation
 
   event void Timer0.fired() {
     if (!radioLocked) {
-      TokenMessage* tokenMessagePacket = (TokenMessage*)(call Packet.getPayload(&packet, NULL));
+      TokenMessage* tokenMessagePacket = (TokenMessage*)(call Packet.getPayload(&packet, sizeof(TokenMessage)));
       tokenMessagePacket->payload = TOS_NODE_ID; //swap out for random token contents, or 0xFFFF
 
       if (call AMSend.send(AM_BROADCAST_ADDR, &packet, sizeof(TokenMessage)) == SUCCESS) { //Maybe just next node in the list, not AM_BROADCAST_ADDR
@@ -58,17 +56,17 @@ implementation
       call AMControl.start();
     }
     else {
-      if (BASE_STATION = TOS_NODE_ID) { //If this node has been designated as the base station
+      if (BASE_STATION == TOS_NODE_ID) { //If this node has been designated as the base station
         call Leds.led0On();
         //generate random token
-        call Timer0.start(TIMER_ONE_SHOT, 3000);
+        call Timer0.startOneShot(3000);
       }
       while (1) { //Now just act like any node on the ring.
         //wait for a token addressed to me 
           //does this involve listening to all Tx's?
         //get token
         call Leds.led0On();
-        call Timer0.start(TIMER_ONE_SHOT, 1000);
+        call Timer0.startOneShot(1000);
       }
     }
   }
