@@ -1,5 +1,5 @@
 /**
- * TokenPassing is a simple "token passing" program. It creates a list of the
+ * TokenPassing is a simple "token passing" program. It has a list of the
  * nodes to be used for the routing, and generates a token to be passed along,
  * toggling the LEDs in the genomotes.
  *
@@ -8,8 +8,6 @@
  */
 
 #include "Timer.h"
-
-#define MAX_NODES 2
 
 module TokenPassingC @safe()
 {
@@ -46,16 +44,20 @@ implementation
   event void Timer0.fired() {
     if (!radioLocked) {
       TokenMessage* tokenMessagePacket = (TokenMessage*)(call Packet.getPayload(&packet, sizeof(TokenMessage)));
-      tokenMessagePacket->payload = 0xBEEF; //Or random other payload.
+      tokenMessagePacket->payload = 0xBEEF; //Or whatever other payload you like.
 
-      //bump up to next node id.
-      //nextNodeAddr = (TOS_NODE_ID + 1) % MAX_NODES;
-
-      if (TOS_NODE_ID == 1) {
-        nextNodeAddr = 0;
-      }
+      //Hard-coded routing information
       if (TOS_NODE_ID == 0) {
         nextNodeAddr = 1;
+      }
+      if (TOS_NODE_ID == 1) {
+        nextNodeAddr = 2;
+      }
+      if (TOS_NODE_ID == 2) {
+        nextNodeAddr = 3;
+      }
+      if (TOS_NODE_ID == 3) {
+        nextNodeAddr = 0;
       }
 
       if (call AMSend.send(nextNodeAddr, &packet, sizeof(TokenMessage)) == SUCCESS) {
@@ -104,18 +106,15 @@ implementation
       radioLocked = FALSE;
     }
     else {
-      //Probably snow in hell.
-      call Timer1.startPeriodic(100);
+      call Timer1.startPeriodic(100); //Errors.
     }
   }
 
   event message_t* Receive.receive(message_t* message, void* payload, uint8_t length) {
-    //call Timer1.startPeriodic(500);
     if (length == sizeof(TokenMessage)) {
       TokenMessage* tokenMessagePacket = (TokenMessage*)payload;
       //tokenMessagePacket->payload now contains whatever we are passing around.
 
-      //call Timer1.startPeriodic(500);
       call Leds.led0On();
       call Leds.led1On();
       call Leds.led2On();
@@ -124,7 +123,3 @@ implementation
     return message;
   }
 }
-
-/*
-call AMPacket.isForMe(msg)
-*/

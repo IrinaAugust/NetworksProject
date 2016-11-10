@@ -1,5 +1,5 @@
 /**
- * TokenPassing is a simple "token passing" program. It creates a list of the
+ * TokenPassing is a simple "token passing" program. It has a list of the
  * nodes to be used for the routing, and generates a token to be passed along,
  * toggling the LEDs in the genomotes.
  *
@@ -10,7 +10,7 @@
 #include "TokenPassing.h"
 
 configuration TokenPassingAppC {
-  //Nobody should be using this
+  
 }
 implementation {
   components MainC, TokenPassingC, LedsC;
