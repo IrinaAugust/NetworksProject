@@ -1,5 +1,8 @@
 README for TokenPassing
 Group 2
+-Tyler Gauvreau    - 007696523
+-Irina Avgustyniak - 007725420
+-Nolan Labelle     - 007712175
 
 Description:
 TokenPassing is a simple "token passing" program. It has a list of the nodes to be used for the routing, and generates a token to be passed along, toggling the LEDs in the genomotes.
