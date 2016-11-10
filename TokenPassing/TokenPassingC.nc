@@ -35,9 +35,9 @@ implementation
   event void Timer0.fired() {
     if (!radioLocked) {
       TokenMessage* tokenMessagePacket = (TokenMessage*)(call Packet.getPayload(&packet, sizeof(TokenMessage)));
-      tokenMessagePacket->payload = TOS_NODE_ID; //swap out for random token contents, or 0xFFFF
+      tokenMessagePacket->payload = 0xBEEF; //Or random other payload.
 
-      if (call AMSend.send(AM_BROADCAST_ADDR, &packet, sizeof(TokenMessage)) == SUCCESS) { //Maybe just next node in the list, not AM_BROADCAST_ADDR
+      if (call AMSend.send(AM_BROADCAST_ADDR, &packet, sizeof(TokenMessage)) == SUCCESS) { //Change to next node in the list, not AM_BROADCAST_ADDR.
         radioLocked = TRUE;
       }
       else {
@@ -56,15 +56,11 @@ implementation
       call AMControl.start();
     }
     else {
-      if (BASE_STATION == TOS_NODE_ID) { //If this node has been designated as the base station
+      if (0 == TOS_NODE_ID) { //If this node has been designated as the base station
         call Leds.led0On();
-        //generate random token
         call Timer0.startOneShot(3000);
       }
       while (1) { //Now just act like any node on the ring.
-        //wait for a token addressed to me 
-          //does this involve listening to all Tx's?
-        //get token
         call Leds.led0On();
         call Timer0.startOneShot(1000);
       }

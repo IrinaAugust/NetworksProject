@@ -3,8 +3,7 @@
 #define TOKENPASSING_H
 
 enum {
-  AM_TOKEN = 6,
-  BASE_STATION = "A6005whe"
+  AM_TOKEN = 6
 };
 
 typedef nx_struct TokenMessage {
