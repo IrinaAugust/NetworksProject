@@ -9,7 +9,7 @@
 
 #include "Timer.h"
 
-#define MAX_NODES 1
+#define MAX_NODES 2
 
 module TokenPassingC @safe()
 {
@@ -49,25 +49,30 @@ implementation
       tokenMessagePacket->payload = 0xBEEF; //Or random other payload.
 
       //bump up to next node id.
-      nextNodeAddr = (TOS_NODE_ID + 1) % MAX_NODES;
+      //nextNodeAddr = (TOS_NODE_ID + 1) % MAX_NODES;
+
+      if (TOS_NODE_ID == 1) {
+        nextNodeAddr = 0;
+      }
+      if (TOS_NODE_ID == 0) {
+        nextNodeAddr = 1;
+      }
 
       if (call AMSend.send(nextNodeAddr, &packet, sizeof(TokenMessage)) == SUCCESS) {
         radioLocked = TRUE;
-        call Timer1.startPeriodic(500);
+        call Leds.led0Off();
+        call Leds.led1Off();
+        call Leds.led2Off();
       }
       else {
         //Packet was not accepted. Bad packet somehow.
-        //call Timer1.startPeriodic(500);
+        call Timer1.startPeriodic(100);
       }
     }
     else {
       //Radio was locked for some odd reason
-      //call Timer1.startPeriodic(500);
+      call Timer1.startPeriodic(100);
     }
-
-    //call Leds.led0Off();
-    //call Leds.led1Off();
-    //call Leds.led2Off();
   }
 
   event void AMControl.startDone(error_t error) {
@@ -76,9 +81,9 @@ implementation
     }
     else { //Radio is now on.
       if (0 == TOS_NODE_ID) { //If base station, generate the token.
-        //call Leds.led0On();
-        //call Leds.led1On();
-        //call Leds.led2On();
+        call Leds.led0On();
+        call Leds.led1On();
+        call Leds.led2On();
         call Timer0.startOneShot(3000);
       }
     }
@@ -100,18 +105,20 @@ implementation
     }
     else {
       //Probably snow in hell.
-      call Timer1.startPeriodic(500);
+      call Timer1.startPeriodic(100);
     }
   }
 
   event message_t* Receive.receive(message_t* message, void* payload, uint8_t length) {
+    //call Timer1.startPeriodic(500);
     if (length == sizeof(TokenMessage)) {
       TokenMessage* tokenMessagePacket = (TokenMessage*)payload;
       //tokenMessagePacket->payload now contains whatever we are passing around.
 
-      //call Leds.led0On();
-      //call Leds.led1On();
-      //call Leds.led2On();
+      //call Timer1.startPeriodic(500);
+      call Leds.led0On();
+      call Leds.led1On();
+      call Leds.led2On();
       call Timer0.startOneShot(1000);
     }
     return message;
