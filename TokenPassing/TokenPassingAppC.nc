@@ -15,6 +15,7 @@ configuration TokenPassingAppC {
 implementation {
   components MainC, TokenPassingC, LedsC;
   components new TimerMilliC() as Timer0;
+  components new TimerMilliC() as Timer1;
   components ActiveMessageC;
   components new AMSenderC(AM_TOKEN);
   components new AMReceiverC(AM_TOKEN);
@@ -22,6 +23,7 @@ implementation {
   TokenPassingC.Boot -> MainC.Boot;
   TokenPassingC.Leds -> LedsC;
   TokenPassingC.Timer0 -> Timer0;
+  TokenPassingC.Timer1 -> Timer1;
 
   TokenPassingC.Packet -> AMSenderC;
   TokenPassingC.AMPacket -> AMSenderC;

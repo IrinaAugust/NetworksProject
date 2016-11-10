@@ -9,11 +9,14 @@
 
 #include "Timer.h"
 
+#define MAX_NODES 1
+
 module TokenPassingC @safe()
 {
   uses interface Boot;
   uses interface Leds;
   uses interface Timer<TMilli> as Timer0;
+  uses interface Timer<TMilli> as Timer1;
 
   uses interface Packet;
   uses interface AMPacket;
@@ -27,42 +30,56 @@ implementation
 {
   bool radioLocked = FALSE;
   message_t packet;
+  uint8_t nextNodeAddr = 0;
 
   event void Boot.booted() {
     call AMControl.start();
   }
 
+  event void Timer1.fired() {
+    call Leds.led0Toggle();
+    call Leds.led1Toggle();
+    call Leds.led2Toggle();
+  }
+
+  //Transmission code
   event void Timer0.fired() {
     if (!radioLocked) {
       TokenMessage* tokenMessagePacket = (TokenMessage*)(call Packet.getPayload(&packet, sizeof(TokenMessage)));
       tokenMessagePacket->payload = 0xBEEF; //Or random other payload.
 
-      if (call AMSend.send(AM_BROADCAST_ADDR, &packet, sizeof(TokenMessage)) == SUCCESS) { //Change to next node in the list, not AM_BROADCAST_ADDR.
+      //bump up to next node id.
+      nextNodeAddr = (TOS_NODE_ID + 1) % MAX_NODES;
+
+      if (call AMSend.send(nextNodeAddr, &packet, sizeof(TokenMessage)) == SUCCESS) {
         radioLocked = TRUE;
+        call Timer1.startPeriodic(500);
       }
       else {
         //Packet was not accepted. Bad packet somehow.
+        //call Timer1.startPeriodic(500);
       }
     }
     else {
       //Radio was locked for some odd reason
+      //call Timer1.startPeriodic(500);
     }
 
-    call Leds.led0Off();
+    //call Leds.led0Off();
+    //call Leds.led1Off();
+    //call Leds.led2Off();
   }
 
   event void AMControl.startDone(error_t error) {
     if (error != SUCCESS) {
       call AMControl.start();
     }
-    else {
-      if (0 == TOS_NODE_ID) { //If this node has been designated as the base station
-        call Leds.led0On();
+    else { //Radio is now on.
+      if (0 == TOS_NODE_ID) { //If base station, generate the token.
+        //call Leds.led0On();
+        //call Leds.led1On();
+        //call Leds.led2On();
         call Timer0.startOneShot(3000);
-      }
-      while (1) { //Now just act like any node on the ring.
-        call Leds.led0On();
-        call Timer0.startOneShot(1000);
       }
     }
   }
@@ -83,6 +100,7 @@ implementation
     }
     else {
       //Probably snow in hell.
+      call Timer1.startPeriodic(500);
     }
   }
 
@@ -90,14 +108,16 @@ implementation
     if (length == sizeof(TokenMessage)) {
       TokenMessage* tokenMessagePacket = (TokenMessage*)payload;
       //tokenMessagePacket->payload now contains whatever we are passing around.
-      //No processing requirements as of yet.
+
+      //call Leds.led0On();
+      //call Leds.led1On();
+      //call Leds.led2On();
+      call Timer0.startOneShot(1000);
     }
     return message;
   }
 }
 
 /*
-call AMSend.send("the address", msg, len)
 call AMPacket.isForMe(msg)
-call AMSend.send(AM_BROADCAST_ADDR, &pkt, len)
 */
