@@ -18,6 +18,7 @@ implementation {
   components new TimerMilliC() as Timer0;
   components new TimerMilliC() as Timer1;
   components new TimerMilliC() as Timer2;
+  components new TimerMilliC() as Timer3;
   components ActiveMessageC;
   components new AMSenderC(AM_TOKEN);
   components new AMReceiverC(AM_TOKEN);
@@ -29,11 +30,11 @@ implementation {
   TokenPassingC.Timer0 -> Timer0;
   TokenPassingC.Timer1 -> Timer1;
   TokenPassingC.Timer2 -> Timer2;
+  TokenPassingC.Timer3 -> Timer3;
   TokenPassingC.Packet -> AMSenderC;
   TokenPassingC.AMPacket -> AMSenderC;
   TokenPassingC.AMSend -> AMSenderC;
   TokenPassingC.AMControl -> ActiveMessageC;
   TokenPassingC.Receive -> AMReceiverC;
   TokenPassingC.Random -> RandomC;
-  //TokenPassingC.Printf -> PrintfC; //don't need this.
 }

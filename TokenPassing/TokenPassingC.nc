@@ -17,6 +17,7 @@ module TokenPassingC @safe()
   uses interface Timer<TMilli> as Timer0;
   uses interface Timer<TMilli> as Timer1;
   uses interface Timer<TMilli> as Timer2;
+  uses interface Timer<TMilli> as Timer3;
   uses interface Packet;
   uses interface AMPacket;
   uses interface AMSend;
@@ -28,8 +29,6 @@ implementation
 {
   bool radioLocked = FALSE;
   message_t packet;
-  uint8_t randomDestination = 0;
-  uint16_t edgeNodeAddr = 0;
 
   event void Boot.booted() {
     call AMControl.start();
@@ -42,36 +41,44 @@ implementation
     call Leds.led2Toggle();
   }
 
-  //Just to turn the LED's off
+  //Tx light
   event void Timer2.fired() {
-    call Leds.led0Off();
     call Leds.led1Off();
+  }
+
+  //Rx light
+  event void Timer3.fired() {
     call Leds.led2Off();
   }
 
-  //Transmission code
-  event void Timer0.fired() {
+  void sendPacket (uint16_t sendTo, uint16_t content) {
     if (!radioLocked) {
-      TokenMessage* tokenMessagePacket = (TokenMessage*)(call Packet.getPayload(&packet, sizeof(TokenMessage)));
+	  TokenMessage* tokenMessagePacket = (TokenMessage*)(call Packet.getPayload(&packet, sizeof(TokenMessage)));
 
-      randomDestination = call Random.rand16(); //Generate random number.
-      randomDestination = (randomDestination % 89) + 10; //Make that random number between 10 and 99.
-      tokenMessagePacket->destination = randomDestination;
-      tokenMessagePacket->payload = 0xBEEF; //Or whatever other payload you like.
-      tokenMessagePacket->source = TOS_NODE_ID; //Makes it easier to print out the ID of the sender.
+	  tokenMessagePacket->destination = sendTo;
+	  tokenMessagePacket->payload = content;
+	  tokenMessagePacket->source = TOS_NODE_ID;
 
-      if (call AMSend.send(0xFFFF, &packet, sizeof(TokenMessage)) == SUCCESS) { //0xFF for broadcasting.
-        radioLocked = TRUE;
-      }
-      else {
-        //Packet was not accepted. Bad packet somehow.
-        call Timer1.startPeriodic(100);
-      }
-    }
-    else {
-      //Radio was locked for some odd reason
-      call Timer1.startPeriodic(100);
-    }
+	  printf("Sending Message: %04X From: %d To: %d\n", content, TOS_NODE_ID, sendTo);
+	  printfflush();
+	  if (call AMSend.send(0xFFFF, &packet, sizeof(TokenMessage)) == SUCCESS) { //0xFF for broadcasting.
+	    radioLocked = TRUE;
+	  }
+	  else {
+	  //Packet was not accepted. Bad packet somehow.
+	  call Timer1.startPeriodic(100);
+	  }
+	}
+	else {
+	  //Radio was locked, keep retrying.
+	  //call Timer0.startOneShot(100);
+	}
+  }
+
+  //Send a packet to a random address
+  event void Timer0.fired() {
+    uint16_t randomDestination = ((call Random.rand16()) % 89) + 10; //Generate random number and make that random number between 10 and 99.
+	sendPacket(randomDestination, 0xBEEF);
   }
 
   event void AMControl.startDone(error_t error) {
@@ -99,10 +106,8 @@ implementation
     //Only really needed if more then one user of the radio.
     if (&packet == message) {
       radioLocked = FALSE;
-      call Leds.led0On();
       call Leds.led1On();
-      call Leds.led2On();
-      call Timer2.startOneShot(1000);
+      call Timer2.startOneShot(1000); //Turn the send light off after 1000ms.
     }
     else {
       call Timer1.startPeriodic(100); //Errors.
@@ -112,16 +117,23 @@ implementation
   event message_t* Receive.receive(message_t* message, void* payload, uint8_t length) {
     if (length == sizeof(TokenMessage)) {
       TokenMessage* tokenMessagePacket = (TokenMessage*)payload;
+      uint16_t from = tokenMessagePacket->source;
+	  uint16_t to = tokenMessagePacket->destination;
+	  uint16_t content = tokenMessagePacket->payload;
+
 	  if (TOS_NODE_ID == 0) {
-	    uint16_t from = tokenMessagePacket->source;
-	    uint16_t to = tokenMessagePacket->destination;
-	    uint16_t content = tokenMessagePacket->payload;
 	    printf("Message received From: %d To: %d Message: %04X\n", from, to, content);
 	    printfflush();
-	    call Leds.led0On();
-            call Leds.led1On();
-            call Leds.led2On();
-	    call Timer2.startOneShot(500);
+	    call Leds.led2On(); //Turn on Rx light.
+	    call Timer3.startOneShot(500); //Turn off the Rx light
+		sendPacket(to,content); //Forward the packet
+	  }
+	  else //We're an edge node.
+	  {
+		if (((to % 4)+1) == TOS_NODE_ID) { //Then this is a packet meant for us.
+		  call Leds.led2On(); //Turn on Rx light.
+		  call Timer3.startOneShot(500); //Turn off the Rx light
+		}
 	  }
     }
     return message;
