@@ -51,15 +51,16 @@ implementation
     call Leds.led2Off();
   }
 
-  void sendPacket (uint16_t sendTo, uint16_t content) {
+  void sendPacket (uint16_t sendTo, char* content) {
     if (!radioLocked) {
 	  TokenMessage* tokenMessagePacket = (TokenMessage*)(call Packet.getPayload(&packet, sizeof(TokenMessage)));
 
 	  tokenMessagePacket->destination = sendTo;
-	  tokenMessagePacket->payload = content;
+	  //tokenMessagePacket->payload = *content;
+	  strcpy(tokenMessagePacket->payload, content);
 	  tokenMessagePacket->source = TOS_NODE_ID;
 
-	  printf("Sending Message: %04X From: %d To: %d\n", content, TOS_NODE_ID, sendTo);
+	  printf("Sending Message: %s From: %d To: %d\n", content, TOS_NODE_ID, sendTo);
 	  printfflush();
 	  if (call AMSend.send(0xFFFF, &packet, sizeof(TokenMessage)) == SUCCESS) { //0xFF for broadcasting.
 	    radioLocked = TRUE;
@@ -78,7 +79,8 @@ implementation
   //Send a packet to a random address
   event void Timer0.fired() {
     uint16_t randomDestination = ((call Random.rand16()) % 89) + 10; //Generate random number and make that random number between 10 and 99.
-	sendPacket(randomDestination, 0xBEEF);
+        char sendMe[9] = "COMP4300\0";
+	sendPacket(randomDestination, sendMe);
   }
 
   event void AMControl.startDone(error_t error) {
@@ -119,10 +121,11 @@ implementation
       TokenMessage* tokenMessagePacket = (TokenMessage*)payload;
       uint16_t from = tokenMessagePacket->source;
 	  uint16_t to = tokenMessagePacket->destination;
-	  uint16_t content = tokenMessagePacket->payload;
+	  char content[9];
+	  strcpy(content,tokenMessagePacket->payload);
 
 	  if (TOS_NODE_ID == 0) {
-	    printf("Message received From: %d To: %d Message: %04X\n", from, to, content);
+	    printf("Message received From: %d To: %d Message: %s\n", from, to, content);
 	    printfflush();
 	    call Leds.led2On(); //Turn on Rx light.
 	    call Timer3.startOneShot(500); //Turn off the Rx light
