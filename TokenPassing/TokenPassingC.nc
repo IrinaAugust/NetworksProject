@@ -8,6 +8,7 @@
  */
 
 #include "Timer.h"
+#include "printf.h"
 
 module TokenPassingC @safe()
 {
@@ -16,15 +17,12 @@ module TokenPassingC @safe()
   uses interface Timer<TMilli> as Timer0;
   uses interface Timer<TMilli> as Timer1;
   uses interface Timer<TMilli> as Timer2;
-
   uses interface Packet;
   uses interface AMPacket;
   uses interface AMSend;
   uses interface SplitControl as AMControl;
-
   uses interface Receive;
   uses interface Random;
-
 }
 implementation
 {
@@ -44,6 +42,7 @@ implementation
     call Leds.led2Toggle();
   }
 
+  //Just to turn the LED's off
   event void Timer2.fired() {
     call Leds.led0Off();
     call Leds.led1Off();
@@ -57,10 +56,11 @@ implementation
 
       randomDestination = call Random.rand16(); //Generate random number.
       randomDestination = (randomDestination % 89) + 10; //Make that random number between 10 and 99.
-      tokenMessagePacket->destAddr = randomDestination;
+      tokenMessagePacket->destination = randomDestination;
       tokenMessagePacket->payload = 0xBEEF; //Or whatever other payload you like.
+      tokenMessagePacket->source = TOS_NODE_ID; //Makes it easier to print out the ID of the sender.
 
-      if (call AMSend.send(0xFF, &packet, sizeof(TokenMessage)) == SUCCESS) { //0xFF for broadcasting.
+      if (call AMSend.send(0xFFFF, &packet, sizeof(TokenMessage)) == SUCCESS) { //0xFF for broadcasting.
         radioLocked = TRUE;
       }
       else {
@@ -79,7 +79,10 @@ implementation
       call AMControl.start();
     }
     else { //Radio is now on.
-	  call Timer0.startPeriodic(3000); //Start sending random packets every 3 seconds.
+      if (TOS_NODE_ID != 0){
+	    call Timer0.startPeriodic(3000); //Start sending random packets every 3 seconds.
+	  }
+	  //Else we are the base station and we just wait around to recieve packets to print.
     }
   }
 
@@ -96,6 +99,9 @@ implementation
     //Only really needed if more then one user of the radio.
     if (&packet == message) {
       radioLocked = FALSE;
+      call Leds.led0On();
+      call Leds.led1On();
+      call Leds.led2On();
       call Timer2.startOneShot(1000);
     }
     else {
@@ -106,9 +112,17 @@ implementation
   event message_t* Receive.receive(message_t* message, void* payload, uint8_t length) {
     if (length == sizeof(TokenMessage)) {
       TokenMessage* tokenMessagePacket = (TokenMessage*)payload;
-      //tokenMessagePacket->payload now contains whatever we are passing around.
-
-      //Don't need to do anything with these packets.
+	  if (TOS_NODE_ID == 0) {
+	    uint16_t from = tokenMessagePacket->source;
+	    uint16_t to = tokenMessagePacket->destination;
+	    uint16_t content = tokenMessagePacket->payload;
+	    printf("Message received From: %d To: %d Message: %04X\n", from, to, content);
+	    printfflush();
+	    call Leds.led0On();
+            call Leds.led1On();
+            call Leds.led2On();
+	    call Timer2.startOneShot(500);
+	  }
     }
     return message;
   }

@@ -8,6 +8,7 @@
  */
 
 #include "TokenPassing.h"
+#include <printf.h>
 
 configuration TokenPassingAppC {
 
@@ -21,19 +22,18 @@ implementation {
   components new AMSenderC(AM_TOKEN);
   components new AMReceiverC(AM_TOKEN);
   components RandomC;
+  components PrintfC;
 
   TokenPassingC.Boot -> MainC.Boot;
   TokenPassingC.Leds -> LedsC;
   TokenPassingC.Timer0 -> Timer0;
   TokenPassingC.Timer1 -> Timer1;
   TokenPassingC.Timer2 -> Timer2;
-
   TokenPassingC.Packet -> AMSenderC;
   TokenPassingC.AMPacket -> AMSenderC;
   TokenPassingC.AMSend -> AMSenderC;
   TokenPassingC.AMControl -> ActiveMessageC;
-
   TokenPassingC.Receive -> AMReceiverC;
-
   TokenPassingC.Random -> RandomC;
+  //TokenPassingC.Printf -> PrintfC; //don't need this.
 }
