@@ -22,7 +22,7 @@ make genomote master install.3 /dev/ttyUSB3
 make genomote master install.3 /dev/ttyUSB3
 
 To get output from node 0:
-java net.tinyos.tools.PrintfClient serial@/dev/ttyUSB#:57600
+java net.tinyos.tools.PrintfClient -comm serial@/dev/ttyUSB#:57600
 Where # is the propper USB device node 0 has been assigned to by your operating system.
 
 -Motes must be assigned their ID's during installation.
