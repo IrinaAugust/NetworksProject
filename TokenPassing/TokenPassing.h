@@ -7,6 +7,7 @@ enum {
 };
 
 typedef nx_struct TokenMessage {
+  nx_uint16_t destAddr;
   nx_uint16_t payload;
 } TokenMessage;
 

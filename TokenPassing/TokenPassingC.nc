@@ -15,6 +15,7 @@ module TokenPassingC @safe()
   uses interface Leds;
   uses interface Timer<TMilli> as Timer0;
   uses interface Timer<TMilli> as Timer1;
+  uses interface Timer<TMilli> as Timer2;
 
   uses interface Packet;
   uses interface AMPacket;
@@ -22,49 +23,45 @@ module TokenPassingC @safe()
   uses interface SplitControl as AMControl;
 
   uses interface Receive;
+  uses interface Random;
 
 }
 implementation
 {
   bool radioLocked = FALSE;
   message_t packet;
-  uint8_t nextNodeAddr = 0;
+  uint8_t randomDestination = 0;
+  uint16_t edgeNodeAddr = 0;
 
   event void Boot.booted() {
     call AMControl.start();
   }
 
+  //We blink this over and over when we notice an error.
   event void Timer1.fired() {
     call Leds.led0Toggle();
     call Leds.led1Toggle();
     call Leds.led2Toggle();
   }
 
+  event void Timer2.fired() {
+    call Leds.led0Off();
+    call Leds.led1Off();
+    call Leds.led2Off();
+  }
+
   //Transmission code
   event void Timer0.fired() {
     if (!radioLocked) {
       TokenMessage* tokenMessagePacket = (TokenMessage*)(call Packet.getPayload(&packet, sizeof(TokenMessage)));
+
+      randomDestination = call Random.rand16(); //Generate random number.
+      randomDestination = (randomDestination % 89) + 10; //Make that random number between 10 and 99.
+      tokenMessagePacket->destAddr = randomDestination;
       tokenMessagePacket->payload = 0xBEEF; //Or whatever other payload you like.
 
-      //Hard-coded routing information
-      if (TOS_NODE_ID == 0) {
-        nextNodeAddr = 1;
-      }
-      if (TOS_NODE_ID == 1) {
-        nextNodeAddr = 2;
-      }
-      if (TOS_NODE_ID == 2) {
-        nextNodeAddr = 3;
-      }
-      if (TOS_NODE_ID == 3) {
-        nextNodeAddr = 0;
-      }
-
-      if (call AMSend.send(nextNodeAddr, &packet, sizeof(TokenMessage)) == SUCCESS) {
+      if (call AMSend.send(0xFF, &packet, sizeof(TokenMessage)) == SUCCESS) { //0xFF for broadcasting.
         radioLocked = TRUE;
-        call Leds.led0Off();
-        call Leds.led1Off();
-        call Leds.led2Off();
       }
       else {
         //Packet was not accepted. Bad packet somehow.
@@ -82,12 +79,7 @@ implementation
       call AMControl.start();
     }
     else { //Radio is now on.
-      if (0 == TOS_NODE_ID) { //If base station, generate the token.
-        call Leds.led0On();
-        call Leds.led1On();
-        call Leds.led2On();
-        call Timer0.startOneShot(3000);
-      }
+	  call Timer0.startPeriodic(3000); //Start sending random packets every 3 seconds.
     }
   }
 
@@ -104,6 +96,7 @@ implementation
     //Only really needed if more then one user of the radio.
     if (&packet == message) {
       radioLocked = FALSE;
+      call Timer2.startOneShot(1000);
     }
     else {
       call Timer1.startPeriodic(100); //Errors.
@@ -115,10 +108,7 @@ implementation
       TokenMessage* tokenMessagePacket = (TokenMessage*)payload;
       //tokenMessagePacket->payload now contains whatever we are passing around.
 
-      call Leds.led0On();
-      call Leds.led1On();
-      call Leds.led2On();
-      call Timer0.startOneShot(1000);
+      //Don't need to do anything with these packets.
     }
     return message;
   }

@@ -10,20 +10,23 @@
 #include "TokenPassing.h"
 
 configuration TokenPassingAppC {
-  
+
 }
 implementation {
   components MainC, TokenPassingC, LedsC;
   components new TimerMilliC() as Timer0;
   components new TimerMilliC() as Timer1;
+  components new TimerMilliC() as Timer2;
   components ActiveMessageC;
   components new AMSenderC(AM_TOKEN);
   components new AMReceiverC(AM_TOKEN);
+  components RandomC;
 
   TokenPassingC.Boot -> MainC.Boot;
   TokenPassingC.Leds -> LedsC;
   TokenPassingC.Timer0 -> Timer0;
   TokenPassingC.Timer1 -> Timer1;
+  TokenPassingC.Timer2 -> Timer2;
 
   TokenPassingC.Packet -> AMSenderC;
   TokenPassingC.AMPacket -> AMSenderC;
@@ -31,4 +34,6 @@ implementation {
   TokenPassingC.AMControl -> ActiveMessageC;
 
   TokenPassingC.Receive -> AMReceiverC;
+
+  TokenPassingC.Random -> RandomC;
 }
